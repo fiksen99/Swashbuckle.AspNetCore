@@ -2,7 +2,7 @@
 
 namespace Swashbuckle.AspNetCore.MSBuild
 {
-    class SwaggerGenerator : Task
+    public class SwaggerGenerator : Task
     {
         public string AssemblyToLoad { get; set; }
 
