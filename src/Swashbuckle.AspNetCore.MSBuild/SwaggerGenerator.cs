@@ -8,6 +8,13 @@ namespace Swashbuckle.AspNetCore.MSBuild
         [Required]
         public string AssemblyToLoad { get; set; }
 
+        [Required]
+        public string SwaggerDoc { get; set; }
+
+        public string Host { get; set; }
+
+        public string BasePath { get; set; }
+
         public override bool Execute()
         {
             throw new System.NotImplementedException();
