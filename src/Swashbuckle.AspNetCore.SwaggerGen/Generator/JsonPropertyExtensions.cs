@@ -11,9 +11,16 @@ namespace Swashbuckle.AspNetCore.SwaggerGen
     {
         internal static bool IsRequired(this JsonProperty jsonProperty)
         {
-            return jsonProperty.Required == Newtonsoft.Json.Required.AllowNull
-                || jsonProperty.Required == Newtonsoft.Json.Required.Always
-                || jsonProperty.HasAttribute<RequiredAttribute>();
+            if (jsonProperty.Required == Newtonsoft.Json.Required.AllowNull)
+                return true;
+
+            if (jsonProperty.Required == Newtonsoft.Json.Required.Always)
+                return true;
+
+            if (jsonProperty.HasAttribute<RequiredAttribute>())
+                return true;
+
+            return false;
         }
 
         internal static bool IsObsolete(this JsonProperty jsonProperty)
@@ -24,23 +31,31 @@ namespace Swashbuckle.AspNetCore.SwaggerGen
         internal static bool HasAttribute<T>(this JsonProperty jsonProperty)
             where T : Attribute
         {
-            var propInfo = jsonProperty.PropertyInfo();
-            return propInfo != null && propInfo.GetCustomAttribute<T>() != null;
+            if (!jsonProperty.TryGetMemberInfo(out MemberInfo memberInfo))
+                return false;
+
+            return memberInfo.GetCustomAttribute<T>() != null;
         }
 
-        internal static PropertyInfo PropertyInfo(this JsonProperty jsonProperty)
+        internal static bool TryGetMemberInfo(this JsonProperty jsonProperty, out MemberInfo memberInfo)
         {
-            if (jsonProperty.UnderlyingName == null) return null;
+            if (jsonProperty.UnderlyingName == null)
+            {
+                memberInfo = null;
+                return false;
+            }
 
-            var metadata = jsonProperty.DeclaringType.GetTypeInfo()
+            var metadataAttribute = jsonProperty.DeclaringType.GetTypeInfo()
                 .GetCustomAttributes(typeof(ModelMetadataTypeAttribute), true)
                 .FirstOrDefault();
 
-            var typeToReflect = (metadata != null)
-                ? ((ModelMetadataTypeAttribute)metadata).MetadataType
+            var typeToReflect = (metadataAttribute != null)
+                ? ((ModelMetadataTypeAttribute)metadataAttribute).MetadataType
                 : jsonProperty.DeclaringType;
 
-            return typeToReflect.GetProperty(jsonProperty.UnderlyingName, jsonProperty.PropertyType);
+            memberInfo = typeToReflect.GetMember(jsonProperty.UnderlyingName).FirstOrDefault();
+
+            return (memberInfo != null);
         }
     }
 }

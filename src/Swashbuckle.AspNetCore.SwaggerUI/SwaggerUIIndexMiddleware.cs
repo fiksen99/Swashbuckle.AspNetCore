@@ -2,10 +2,13 @@
 using System.IO;
 using System.Text;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
+using System.Linq;
 using Microsoft.AspNetCore.Http;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using System.Text.RegularExpressions;
+using Microsoft.AspNetCore.Routing.Template;
+using Microsoft.AspNetCore.Routing;
 
 namespace Swashbuckle.AspNetCore.SwaggerUI
 {
@@ -22,27 +25,29 @@ namespace Swashbuckle.AspNetCore.SwaggerUI
 
         public async Task Invoke(HttpContext httpContext)
         {
-            if (!RequestingSwaggerUIIndex(httpContext.Request))
+            var httpMethod = httpContext.Request.Method;
+            var path = httpContext.Request.Path.Value;
+
+            // If the RoutePrefix is requested (with or without trailing slash), redirect to index URL
+            if (httpMethod == "GET" && Regex.IsMatch(path, $"^/{_options.RoutePrefix}/?$"))
             {
-                await _next(httpContext);
+                // Use relative redirect to support proxy environments
+                var relativeRedirectPath = path.EndsWith("/")
+                    ? "index.html"
+                    : $"{path.Split('/').Last()}/index.html";
+
+                RespondWithRedirect(httpContext.Response, relativeRedirectPath);
                 return;
             }
 
-            // If trailing slash is missing, force it so that relative links work
-            if (!httpContext.Request.Path.Value.EndsWith("/"))
+            if (httpMethod == "GET" && Regex.IsMatch(path, $"/{_options.RoutePrefix}/?index.html"))
             {
-                RespondWithRedirect(httpContext.Response, $"{_options.RoutePrefix}/");
+                await RespondWithIndexHtml(httpContext.Response);
                 return;
             }
 
-            await RespondWithIndexHtml(httpContext.Response);
+            await _next(httpContext);
             return;
-        }
-
-        public bool RequestingSwaggerUIIndex(HttpRequest request)
-        {
-            return (request.Method == "GET"
-                && Regex.IsMatch(request.Path, $"^/{_options.RoutePrefix}/?$"));
         }
 
         private void RespondWithRedirect(HttpResponse response, string redirectPath)

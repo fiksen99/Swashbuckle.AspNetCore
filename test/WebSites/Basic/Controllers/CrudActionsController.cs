@@ -1,10 +1,12 @@
 ﻿using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
-using System.Runtime.Serialization;
 
 namespace Basic.Controllers
 {
+    /// <summary>
+    /// Summary for CrudActionsController
+    /// </summary>
     [Route("/products")]
     [Produces("application/json")]
     public class CrudActionsController
@@ -36,7 +38,7 @@ namespace Basic.Controllers
         /// <param name="keywords">A list of search terms</param>
         /// <returns></returns>
         [HttpGet]
-        public IEnumerable<Product> Search([FromQuery(Name = "kw")]string keywords)
+        public IEnumerable<Product> Search([FromQuery(Name = "kw")]string keywords = "foobar")
         {
             return new[]
             {

@@ -1,7 +1,6 @@
-﻿using System;
+﻿using System.Linq;
+using System.Reflection;
 using System.Collections.Generic;
-using System.Linq;
-using Microsoft.AspNetCore.Mvc.ApiExplorer;
 using Swashbuckle.AspNetCore.Swagger;
 
 namespace Swashbuckle.AspNetCore.SwaggerGen
@@ -10,10 +9,13 @@ namespace Swashbuckle.AspNetCore.SwaggerGen
     {
         public void Apply(Operation operation, OperationFilterContext context)
         {
-            var apiDesc = context.ApiDescription;
-            var attributes = GetActionAttributes(apiDesc);
+            if (context.MethodInfo == null) return;
 
-            if (!attributes.Any())
+            var swaggerResponseAttributes = context.MethodInfo.GetCustomAttributes(true)
+                .Union(context.MethodInfo.DeclaringType.GetTypeInfo().GetCustomAttributes(true))
+                .OfType<SwaggerResponseAttribute>();
+
+            if (!swaggerResponseAttributes.Any())
                 return;
 
             if (operation.Responses == null)
@@ -21,7 +23,7 @@ namespace Swashbuckle.AspNetCore.SwaggerGen
                 operation.Responses = new Dictionary<string, Response>();
             }
 
-            foreach (var attribute in attributes)
+            foreach (var attribute in swaggerResponseAttributes)
             {
                 ApplyAttribute(operation, context, attribute);
             }
@@ -30,8 +32,7 @@ namespace Swashbuckle.AspNetCore.SwaggerGen
         private static void ApplyAttribute(Operation operation, OperationFilterContext context, SwaggerResponseAttribute attribute)
         {
             var key = attribute.StatusCode.ToString();
-            Response response;
-            if (!operation.Responses.TryGetValue(key, out response))
+            if (!operation.Responses.TryGetValue(key, out Response response))
             {
                 response = new Response();
             }
@@ -43,13 +44,6 @@ namespace Swashbuckle.AspNetCore.SwaggerGen
                 response.Schema = context.SchemaRegistry.GetOrRegister(attribute.Type);
 
             operation.Responses[key] = response;
-        }
-
-        private static IEnumerable<SwaggerResponseAttribute> GetActionAttributes(ApiDescription apiDesc)
-        {
-            var controllerAttributes = apiDesc.ControllerAttributes().OfType<SwaggerResponseAttribute>();
-            var actionAttributes = apiDesc.ActionAttributes().OfType<SwaggerResponseAttribute>();
-            return controllerAttributes.Union(actionAttributes);
         }
     }
 }
