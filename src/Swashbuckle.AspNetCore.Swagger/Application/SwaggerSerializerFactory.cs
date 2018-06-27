@@ -12,7 +12,7 @@ namespace Swashbuckle.AspNetCore.Swagger
             return new JsonSerializer
             {
                 NullValueHandling = NullValueHandling.Ignore,
-                Formatting = applicationJsonOptions.Value.SerializerSettings.Formatting,
+                Formatting = Formatting.Indented,
                 ContractResolver = new SwaggerContractResolver(applicationJsonOptions.Value.SerializerSettings)
             };
         }
